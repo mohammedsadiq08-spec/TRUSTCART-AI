@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { HowItWorks } from './components/HowItWorks';
@@ -16,6 +16,7 @@ import { FullInvestigationModal } from './components/FullInvestigationModal';
 import { AuthModal } from './components/AuthModal';
 import { ProductInvestigation } from './types';
 import { mockInvestigatedProducts } from './data/mockProducts';
+import { apiClient } from './services/api';
 
 export const App: React.FC = () => {
   const [currentProduct, setCurrentProduct] = useState<ProductInvestigation>(
@@ -25,17 +26,29 @@ export const App: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [isAuthOpen, setIsAuthOpen] = useState<boolean>(false);
 
-  const handleInvestigate = (product: ProductInvestigation) => {
-    setIsScanning(true);
-    setTimeout(() => {
-      setIsScanning(false);
-      setCurrentProduct(product);
-      setIsModalOpen(true);
-    }, 900);
-  };
+  // Initial load from backend API
+  useEffect(() => {
+    apiClient.getProductAnalysis('sony-wh1000xm5').then((prod) => {
+      if (prod) setCurrentProduct(prod);
+    });
+  }, []);
 
-  const handleSelectProduct = (product: ProductInvestigation) => {
-    setCurrentProduct(product);
+  const handleInvestigate = async (queryOrProduct: ProductInvestigation | string, mode: 'link' | 'image' | 'search' = 'link') => {
+    setIsScanning(true);
+    try {
+      if (typeof queryOrProduct === 'string') {
+        const result = await apiClient.analyzeProduct(queryOrProduct, mode);
+        setCurrentProduct(result);
+      } else {
+        const result = await apiClient.getProductAnalysis(queryOrProduct.id);
+        setCurrentProduct(result || queryOrProduct);
+      }
+      setIsModalOpen(true);
+    } catch (err) {
+      console.error('Investigation error:', err);
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   const handleOpenScanner = () => {
@@ -71,7 +84,7 @@ export const App: React.FC = () => {
       <main className="flex-1">
         {/* Hero Section with Signature Investigation Console & Live Preview */}
         <Hero
-          onInvestigate={handleInvestigate}
+          onInvestigate={(p) => handleInvestigate(p, 'link')}
           isScanning={isScanning}
           currentProduct={currentProduct}
           onOpenFullReport={(p) => {
@@ -87,8 +100,7 @@ export const App: React.FC = () => {
         {/* Social Commerce / Instagram DM Intelligence */}
         <SocialCommerceDemo
           onInvestigateProduct={(p) => {
-            setCurrentProduct(p);
-            setIsModalOpen(true);
+            handleInvestigate(p, 'image');
           }}
         />
 

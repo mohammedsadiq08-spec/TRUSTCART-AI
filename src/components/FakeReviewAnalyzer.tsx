@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { MessageSquareWarning, Star, CheckCircle, AlertTriangle, Sparkles, User, ShieldCheck, ShieldAlert, Cpu, Bot } from 'lucide-react';
+import { apiClient } from '../services/api';
 
 export const FakeReviewAnalyzer: React.FC = () => {
   const [customReviewInput, setCustomReviewInput] = useState('');
@@ -57,50 +58,23 @@ export const FakeReviewAnalyzer: React.FC = () => {
     }
   ];
 
-  const handleAnalyzeCustomReview = (e: React.FormEvent) => {
+  const handleAnalyzeCustomReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customReviewInput.trim()) return;
     setIsAnalyzingCustom(true);
 
-    setTimeout(() => {
+    try {
+      const res = await apiClient.analyzeReviewText(customReviewInput, 5, true);
+      setCustomResult({
+        suspicionScore: res.suspicionScore,
+        label: res.label,
+        signals: res.signals
+      });
+    } catch (err) {
+      console.error('Review analysis failed:', err);
+    } finally {
       setIsAnalyzingCustom(false);
-      const text = customReviewInput.toLowerCase();
-      const hasExclamations = (customReviewInput.match(/!/g) || []).length > 2;
-      const isShort = customReviewInput.length < 50;
-      const hasExtremeWords = text.includes('best') || text.includes('amazing') || text.includes('perfect') || text.includes('buy now');
-      const hasTechnicalWords = text.includes('battery') || text.includes('hours') || text.includes('sound') || text.includes('build') || text.includes('weight') || text.includes('months');
-
-      if ((hasExclamations || isShort) && hasExtremeWords && !hasTechnicalWords) {
-        setCustomResult({
-          suspicionScore: 84,
-          label: 'High Suspicion Probability (84%)',
-          signals: [
-            'Hyperbolic praise lacking descriptive product telemetry',
-            'Syntactical clustering typical of incentivized reviews',
-            'Missing real-world usage duration benchmarks'
-          ]
-        });
-      } else if (hasTechnicalWords) {
-        setCustomResult({
-          suspicionScore: 16,
-          label: 'High Credibility Signals (16% Suspicion)',
-          signals: [
-            'Domain-specific feature references identified',
-            'Organic sentiment curve with balanced feedback',
-            'Low probability of automated bot generation'
-          ]
-        });
-      } else {
-        setCustomResult({
-          suspicionScore: 42,
-          label: 'Moderate Credibility (42% Suspicion)',
-          signals: [
-            'General consumer sentiment',
-            'Requires additional cross-merchant author verification'
-          ]
-        });
-      }
-    }, 600);
+    }
   };
 
   return (

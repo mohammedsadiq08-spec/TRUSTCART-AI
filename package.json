@@ -4,9 +4,10 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-  "build": "tsc -b && node node_modules/vite/bin/vite.js build"
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview"
   },
-
   "dependencies": {
     "clsx": "^2.1.1",
     "framer-motion": "^11.18.2",
