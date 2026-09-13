@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 from app.database.database import get_db
 from app.schemas.product import ProductResponse, ProductSearchRequest, ProductComparisonRequest
 from app.services.product_service import product_service
+from app.services.user_service import user_service
+from app.core.security import get_current_user
 from app.database import models
 
 router = APIRouter()
@@ -69,3 +71,23 @@ def compare_products(
             })
 
     return comparison_items
+
+
+@router.post("/{product_id}/save")
+def save_product(
+    product_id: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Save/bookmark a product for the authenticated user."""
+    return user_service.save_product(db, current_user, product_id)
+
+
+@router.delete("/{product_id}/save")
+def unsave_product(
+    product_id: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Remove a product from the authenticated user's saved list."""
+    return user_service.unsave_product(db, current_user, product_id)

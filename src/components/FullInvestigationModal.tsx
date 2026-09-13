@@ -1,6 +1,7 @@
-import React from 'react';
-import { X, ShieldCheck, ShieldAlert, AlertTriangle, CheckCircle2, TrendingDown, ExternalLink, Share2, Sparkles, Building, MessageSquare, Tag, Lock, Download } from 'lucide-react';
+﻿import React, { useState } from 'react';
+import { X, ShieldCheck, ShieldAlert, AlertTriangle, CheckCircle2, TrendingDown, ExternalLink, Share2, Sparkles, Building, MessageSquare, Tag, Lock, Download, Bookmark, BookmarkCheck } from 'lucide-react';
 import { ProductInvestigation } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 interface FullInvestigationModalProps {
   product: ProductInvestigation | null;
@@ -13,11 +14,26 @@ export const FullInvestigationModal: React.FC<FullInvestigationModalProps> = ({
   isOpen,
   onClose
 }) => {
+  const { isProductSaved, toggleSaveProduct } = useAuth();
+  const [saveLoading, setSaveLoading] = useState(false);
+
   if (!isOpen || !product) return null;
 
   const isBuy = product.recommendation === 'BUY';
   const isWait = product.recommendation === 'WAIT';
   const isAvoid = product.recommendation === 'AVOID';
+  const saved = isProductSaved(product.id);
+
+  const handleToggleSave = async () => {
+    setSaveLoading(true);
+    try {
+      await toggleSaveProduct(product.id);
+    } catch (err) {
+      console.error('Error toggling save product:', err);
+    } finally {
+      setSaveLoading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-10 bg-dark-950/85 backdrop-blur-2xl overflow-y-auto animate-in fade-in duration-200">
@@ -43,8 +59,33 @@ export const FullInvestigationModal: React.FC<FullInvestigationModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Bookmark / Watchlist Action */}
+            <button
+              onClick={handleToggleSave}
+              disabled={saveLoading}
+              title={saved ? 'Remove from Saved' : 'Save to Watchlist'}
+              className={`px-3 py-1.5 rounded-lg border text-xs flex items-center gap-1.5 transition-all ${
+                saved
+                  ? 'bg-ai-cyan/15 border-ai-cyan/60 text-ai-cyan shadow-sm font-semibold'
+                  : 'bg-dark-800 hover:bg-dark-750 border-dark-700 text-brand-text'
+              }`}
+            >
+              {saved ? (
+                <>
+                  <BookmarkCheck className="w-3.5 h-3.5 text-ai-cyan" />
+                  <span>Saved</span>
+                </>
+              ) : (
+                <>
+                  <Bookmark className="w-3.5 h-3.5 text-brand-dim" />
+                  <span>Save</span>
+                </>
+              )}
+            </button>
+
             <button
               onClick={() => {
+                navigator.clipboard?.writeText(window.location.href);
                 alert(`Trust Certificate for "${product.title}" copied to clipboard!`);
               }}
               className="px-3 py-1.5 rounded-lg bg-dark-800 hover:bg-dark-750 border border-dark-700 text-xs text-brand-text flex items-center gap-1.5 transition-colors hidden sm:flex"
@@ -266,6 +307,28 @@ export const FullInvestigationModal: React.FC<FullInvestigationModalProps> = ({
 
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <button
+              onClick={handleToggleSave}
+              disabled={saveLoading}
+              className={`w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 border transition-all ${
+                saved
+                  ? 'bg-dark-800 border-ai-cyan/60 text-ai-cyan'
+                  : 'bg-dark-800 hover:bg-dark-750 border-dark-700 text-brand-muted hover:text-white'
+              }`}
+            >
+              {saved ? (
+                <>
+                  <BookmarkCheck className="w-3.5 h-3.5 text-ai-cyan" />
+                  <span>Saved to Watchlist</span>
+                </>
+              ) : (
+                <>
+                  <Bookmark className="w-3.5 h-3.5" />
+                  <span>Save to Watchlist</span>
+                </>
+              )}
+            </button>
+
+            <button
               onClick={onClose}
               className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-medium text-brand-muted hover:text-white bg-dark-800 hover:bg-dark-750 transition-colors"
             >
@@ -277,7 +340,7 @@ export const FullInvestigationModal: React.FC<FullInvestigationModalProps> = ({
               }}
               className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold text-dark-950 bg-gradient-to-r from-ai-cyan to-ai-blue hover:brightness-110 shadow-glow-cyan transition-all"
             >
-              Track Price & Trust Sentinel
+              Track Price Sentinel
             </button>
           </div>
         </div>

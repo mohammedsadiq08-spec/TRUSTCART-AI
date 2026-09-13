@@ -1,3 +1,5 @@
+import uuid
+import datetime
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from app.database import models
@@ -46,11 +48,19 @@ class ProductService:
             return db.query(models.Product).filter(models.Product.id == "bose-qc45").first()
         elif "sennheiser" in text_lower:
             return db.query(models.Product).filter(models.Product.id == "sennheiser-accentum").first()
+        elif "samsung" in text_lower or "s24" in text_lower:
+            return db.query(models.Product).filter(models.Product.id == "samsung-s24-ultra").first()
+        elif "macbook" in text_lower or "m3" in text_lower:
+            return db.query(models.Product).filter(models.Product.id == "macbook-air-m3").first()
         else:
-            # Default to flagship investigated product
             return db.query(models.Product).filter(models.Product.id == "sony-wh1000xm5").first() or db.query(models.Product).first()
 
-    def generate_investigation_dossier(self, db: Session, product: models.Product) -> Dict[str, Any]:
+    def generate_investigation_dossier(
+        self,
+        db: Session,
+        product: models.Product,
+        user: Optional[models.User] = None
+    ) -> Dict[str, Any]:
         # 1. Fetch relations
         seller = product.seller
         reviews = product.reviews or []
@@ -158,7 +168,35 @@ class ProductService:
             seller_warnings=seller_warnings
         )
 
-        # Build schema-matching response
+        # 10. Persist analysis in database for authenticated user
+        if user:
+            try:
+                analysis_rec = models.ProductAnalysis(
+                    id=f"ana_{uuid.uuid4().hex[:12]}",
+                    user_id=user.id,
+                    product_id=product.id,
+                    review_trust_score=review_trust_score,
+                    seller_trust_score=seller_trust_score,
+                    price_value_score=price_intel_score,
+                    product_quality_score=product_quality_score,
+                    risk_score=risk_calc["risk_score"],
+                    overall_trust_score=overall_trust_score,
+                    recommendation=rec_calc["recommendation"],
+                    confidence=rec_calc["confidence"],
+                    decision_summary=rec_calc["decision_summary"],
+                    positive_evidence=evidence_calc["positive"],
+                    caution_evidence=evidence_calc["caution"],
+                    risk_factors=evidence_calc["risk_factors"],
+                    raw_telemetry=evidence_calc["raw_telemetry"],
+                    created_at=datetime.datetime.utcnow()
+                )
+                db.add(analysis_rec)
+                db.commit()
+            except Exception as e:
+                print("Failed to persist user analysis history:", e)
+                db.rollback()
+
+        # Build response schema
         return {
             "id": product.id,
             "title": product.name,

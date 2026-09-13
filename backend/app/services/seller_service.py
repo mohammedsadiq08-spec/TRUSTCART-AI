@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any
+﻿from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
 from app.database import models
 from app.ai.seller_trust import seller_trust_engine
@@ -6,6 +6,9 @@ from app.schemas.seller import SellerAnalysisRequest
 
 
 class SellerService:
+    def get_all_sellers(self, db: Session, limit: int = 50) -> List[models.Seller]:
+        return db.query(models.Seller).limit(limit).all()
+
     def get_seller_by_id(self, db: Session, seller_id: str) -> Optional[models.Seller]:
         return db.query(models.Seller).filter(models.Seller.id == seller_id).first()
 

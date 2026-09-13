@@ -2,6 +2,7 @@ import datetime
 from sqlalchemy.orm import Session
 from app.database import models
 from app.database.database import SessionLocal, engine, Base
+from app.core.security import get_password_hash
 
 
 def seed_database():
@@ -9,15 +10,30 @@ def seed_database():
     db: Session = SessionLocal()
 
     try:
-        # Check if already seeded
-        if db.query(models.Product).count() > 0:
-            print("Database already contains data. Skipping seed.")
+        # Check if already seeded with at least 15 products
+        if db.query(models.Product).count() >= 15:
+            print("Database already contains full seed dataset. Skipping seed.")
             return
 
-        print("Seeding TRUSTCART AI database with realistic products, sellers, reviews, and price histories...")
+        print("Seeding TRUSTCART AI database with 20 products, 10 sellers, 100+ reviews, and test user...")
 
         # ----------------------------------------------------
-        # 1. SELLERS (6 Sellers)
+        # 0. DEMO USER
+        # ----------------------------------------------------
+        demo_user = db.query(models.User).filter(models.User.email == "alex@trustcart.ai").first()
+        if not demo_user:
+            demo_user = models.User(
+                id="usr_demo_101",
+                full_name="Alex Mercer",
+                email="alex@trustcart.ai",
+                password_hash=get_password_hash("password123"),
+                created_at=datetime.datetime.utcnow()
+            )
+            db.add(demo_user)
+            db.commit()
+
+        # ----------------------------------------------------
+        # 1. SELLERS (10 Sellers across verified & risky platforms)
         # ----------------------------------------------------
         sellers = [
             models.Seller(
@@ -110,21 +126,83 @@ def seed_database():
                     "No FDA or cosmetic compliance certification provided",
                     "Fake endorsement videos using cloned audio"
                 ]
+            ),
+            models.Seller(
+                id="seller-nike-india",
+                name="Nike India Flagship",
+                platform="Myntra",
+                profile_url="https://myntra.com/nike-official",
+                rating=4.8,
+                review_count=14200,
+                location="Bangalore, India",
+                account_age="6+ Years active",
+                fulfillment_type="Direct Platform",
+                risk_level="LOW",
+                return_policy="14-Day Hassle-Free Returns",
+                warnings=[]
+            ),
+            models.Seller(
+                id="seller-zara-official",
+                name="Inditex Retail (Zara Official)",
+                platform="Shopify Store",
+                profile_url="https://zara.com/in",
+                rating=4.6,
+                review_count=8900,
+                location="Mumbai, India",
+                account_age="9+ Years active",
+                fulfillment_type="Direct Platform",
+                risk_level="LOW",
+                return_policy="30-Day In-Store & Online Returns",
+                warnings=[]
+            ),
+            models.Seller(
+                id="seller-luxe-dropship",
+                name="@luxevintage_leather_hub",
+                platform="Instagram",
+                profile_url="https://instagram.com/luxevintage_leather_hub",
+                rating=2.7,
+                review_count=31,
+                location="Unregistered",
+                account_age="Created 60 days ago",
+                fulfillment_type="Unknown DM Vendor",
+                risk_level="HIGH",
+                return_policy="Return shipping paid by buyer to international hub",
+                warnings=[
+                    "Dropshipping unbranded synthetic products from wholesale hubs",
+                    "Inflated MSRP with fake countdown timers"
+                ]
+            ),
+            models.Seller(
+                id="seller-samsung-tier1",
+                name="Samsung Plaza Official",
+                platform="Amazon",
+                profile_url="https://amazon.in/samsung-plaza",
+                rating=4.8,
+                review_count=21000,
+                location="Noida, India",
+                account_age="7+ Years active",
+                fulfillment_type="Direct Platform",
+                risk_level="LOW",
+                return_policy="7-Day Replacement + Samsung Care+",
+                warnings=[]
             )
         ]
-        db.add_all(sellers)
+        
+        for s in sellers:
+            if not db.query(models.Seller).filter(models.Seller.id == s.id).first():
+                db.add(s)
         db.commit()
 
         # ----------------------------------------------------
-        # 2. PRODUCTS (12 Products across categories)
+        # 2. PRODUCTS (20 Products across all 6 categories)
         # ----------------------------------------------------
-        products = [
+        products_list = [
             # 1. Sony WH-1000XM5 (Headphones)
             models.Product(
                 id="sony-wh1000xm5",
                 name="Sony WH-1000XM5 Wireless Industry Leading Noise Canceling Headphones",
-                description="Industry leading noise cancellation optimized to you; Magnificent Sound, engineered to perfection with the new Integrated Processor V1; Crystal clear hands-free calling with 4 beamforming microphones.",
-                category="Audio & Electronics",
+                description="Industry leading noise cancellation optimized to you with dual processors; 30-hour battery life; crystal-clear calling.",
+                category="Headphones",
                 brand="Sony",
                 price=26990.0,
                 currency="₹",
@@ -145,7 +223,7 @@ def seed_database():
                 id="instagram-viral-sneakers",
                 name="AuraStyle CloudRun Hyped Limited Edition Sneaker (Social Commerce Discovery)",
                 description="Hype street sneaker advertised on social media with 'DM for price'. Dropshipped unbranded PU synthetic leather.",
-                category="Footwear & Apparel",
+                category="Shoes",
                 brand="Unregistered Vendor",
                 price=3499.0,
                 currency="₹",
@@ -161,12 +239,12 @@ def seed_database():
                 market_min=1100.0,
                 market_max=1800.0
             ),
-            # 3. Noise Smartwatch (Wearables)
+            # 3. Noise Smartwatch (Smartphones & Wearables)
             models.Product(
                 id="noise-smartwatch",
                 name="Noise ColorFit Pulse 3 1.96\" HD Display Smartwatch with BT Calling",
                 description="1.96-inch TFT display, 550 nits brightness, Bluetooth calling, 100+ sports modes, 7-day battery life.",
-                category="Wearables",
+                category="Smartphones",
                 brand="Noise",
                 price=1999.0,
                 currency="₹",
@@ -182,12 +260,12 @@ def seed_database():
                 market_min=1499.0,
                 market_max=2199.0
             ),
-            # 4. Apple AirPods Pro 2 (Audio)
+            # 4. Apple AirPods Pro 2 (Headphones)
             models.Product(
                 id="apple-airpods-pro-2",
                 name="Apple AirPods Pro (2nd Gen) with MagSafe Case (USB-C)",
-                description="Up to 2x more Active Noise Cancellation, Transparency mode, Adaptive Audio, Personalized Spatial Audio with dynamic head tracking.",
-                category="Audio & Electronics",
+                description="Up to 2x more Active Noise Cancellation, Transparency mode, Adaptive Audio, Personalized Spatial Audio.",
+                category="Headphones",
                 brand="Apple",
                 price=21900.0,
                 currency="₹",
@@ -203,12 +281,12 @@ def seed_database():
                 market_min=20990.0,
                 market_max=24900.0
             ),
-            # 5. Bose QC 45 (Audio)
+            # 5. Bose QC 45 (Headphones)
             models.Product(
                 id="bose-qc45",
                 name="Bose QuietComfort 45 Bluetooth Wireless Noise Cancelling Headphones",
                 description="Iconic quiet, comfort, and sound. TriPort acoustic architecture offers depth and fullness.",
-                category="Audio & Electronics",
+                category="Headphones",
                 brand="Bose",
                 price=24990.0,
                 currency="₹",
@@ -224,12 +302,12 @@ def seed_database():
                 market_min=23990.0,
                 market_max=27990.0
             ),
-            # 6. Sennheiser Accentum Plus (Audio)
+            # 6. Sennheiser Accentum Plus (Headphones)
             models.Product(
                 id="sennheiser-accentum",
                 name="Sennheiser Accentum Plus Wireless Bluetooth Headphones",
                 description="50-Hour battery life, Hybrid ANC, Sound Personalization, Quick Charge via USB-C.",
-                category="Audio & Electronics",
+                category="Headphones",
                 brand="Sennheiser",
                 price=15990.0,
                 currency="₹",
@@ -258,7 +336,7 @@ def seed_database():
                 image_url="https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=800&q=80",
                 source_platform="Amazon",
                 source_url="https://amazon.in/samsung-s24-ultra",
-                seller_id="seller-appario",
+                seller_id="seller-samsung-tier1",
                 rating=4.8,
                 review_count=6400,
                 thirty_day_avg_price=122000.0,
@@ -287,12 +365,12 @@ def seed_database():
                 market_min=120000.0,
                 market_max=134900.0
             ),
-            # 9. Viral Ultrasonic Skin Scrubber (Beauty)
+            # 9. Viral Ultrasonic Skin Scrubber (Beauty products)
             models.Product(
                 id="viral-skin-scrubber",
                 name="AuraGlow 7-in-1 Ultrasonic Pore Extractor & Skin Scrubber (IG Sponsored)",
                 description="Viral skincare gadget claimed on Instagram to instantly erase blackheads with micro-vibrations.",
-                category="Beauty & Skincare",
+                category="Beauty products",
                 brand="Generic OEM",
                 price=2499.0,
                 currency="₹",
@@ -308,12 +386,54 @@ def seed_database():
                 market_min=550.0,
                 market_max=950.0
             ),
-            # 10. SteelSeries Nova Pro (Gaming)
+            # 10. Nike Air Max 270 (Shoes)
+            models.Product(
+                id="nike-air-max-270",
+                name="Nike Air Max 270 Men's Running Shoes (Triple Black)",
+                description="Nike's biggest heel Air unit yet delivers a super-soft ride that feels as impossible as it looks.",
+                category="Shoes",
+                brand="Nike",
+                price=13995.0,
+                currency="₹",
+                original_price=15995.0,
+                image_url="https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80",
+                source_platform="Myntra",
+                source_url="https://myntra.com/nike-air-max-270",
+                seller_id="seller-nike-india",
+                rating=4.7,
+                review_count=3200,
+                thirty_day_avg_price=14495.0,
+                all_time_low=12495.0,
+                market_min=12995.0,
+                market_max=15995.0
+            ),
+            # 11. Zara Textured Linen Blend Blazer (Clothing)
+            models.Product(
+                id="zara-linen-blazer",
+                name="Zara Tailored Textured Linen Blend Blazer",
+                description="Regular fit blazer featuring notched lapels, long sleeves with buttoned cuffs, front flap pockets.",
+                category="Clothing",
+                brand="Zara",
+                price=6990.0,
+                currency="₹",
+                original_price=8990.0,
+                image_url="https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=800&q=80",
+                source_platform="Shopify Store",
+                source_url="https://zara.com/in/linen-blazer",
+                seller_id="seller-zara-official",
+                rating=4.5,
+                review_count=980,
+                thirty_day_avg_price=7490.0,
+                all_time_low=5990.0,
+                market_min=6500.0,
+                market_max=8990.0
+            ),
+            # 12. SteelSeries Nova Pro (Headphones)
             models.Product(
                 id="steelseries-nova-pro",
                 name="SteelSeries Arctis Nova Pro Wireless Multi-System Gaming Headset",
                 description="Premium High Fidelity audio drivers, Active Noise Cancellation, Infinity Power System with 2 hot-swap batteries.",
-                category="Audio & Electronics",
+                category="Headphones",
                 brand="SteelSeries",
                 price=31990.0,
                 currency="₹",
@@ -329,219 +449,199 @@ def seed_database():
                 market_min=30000.0,
                 market_max=36000.0
             ),
-            # 11. Jabra Elite 8 Active (Fitness)
+            # 13. Dell XPS 15 Laptop (Laptops)
             models.Product(
-                id="jabra-elite-8",
-                name="Jabra Elite 8 Active Gen 2 Rugged True Wireless Earbuds",
-                description="Military-grade IP68 waterproof, dustproof, and 1m drop-resistant with Spatial Sound.",
-                category="Audio & Electronics",
-                brand="Jabra",
-                price=17999.0,
+                id="dell-xps-15",
+                name="Dell XPS 15 9530 Intel Core i9 (32GB RAM, 1TB SSD, RTX 4070)",
+                description="3.5K OLED Touch Display, 13th Gen Intel Core i9-13900H, CNC machined aluminum chassis.",
+                category="Laptops",
+                brand="Dell",
+                price=249990.0,
                 currency="₹",
-                original_price=21990.0,
-                image_url="https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&w=800&q=80",
+                original_price=279990.0,
+                image_url="https://images.unsplash.com/photo-1593642632823-8f785ba67e45?auto=format&fit=crop&w=800&q=80",
                 source_platform="Amazon",
-                source_url="https://amazon.in/jabra-elite-8",
+                source_url="https://amazon.in/dell-xps-15",
                 seller_id="seller-appario",
                 rating=4.6,
-                review_count=1450,
-                thirty_day_avg_price=18999.0,
-                all_time_low=15999.0,
-                market_min=16500.0,
-                market_max=20000.0
+                review_count=1100,
+                thirty_day_avg_price=254000.0,
+                all_time_low=239990.0,
+                market_min=240000.0,
+                market_max=279990.0
             ),
-            # 12. Sennheiser HD 660S2 (Audiophile)
+            # 14. iPhone 15 Pro Max (Smartphones)
             models.Product(
-                id="sennheiser-hd660s2",
-                name="Sennheiser HD 660S2 Audiophile Open-Back Dynamic Headphones",
-                description="Reference open dynamic headphones with refined sub-bass precision and handcrafted transducers in Ireland.",
-                category="Audio & Electronics",
-                brand="Sennheiser",
-                price=38990.0,
+                id="iphone-15-pro-max",
+                name="Apple iPhone 15 Pro Max (256 GB) - Natural Titanium",
+                description="Forged in titanium, A17 Pro chip, Action button, 5x Telephoto camera, USB-C with USB 3 speeds.",
+                category="Smartphones",
+                brand="Apple",
+                price=148900.0,
                 currency="₹",
-                original_price=49990.0,
-                image_url="https://images.unsplash.com/photo-1545127398-14699f92334b?auto=format&fit=crop&w=800&q=80",
+                original_price=159900.0,
+                image_url="https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=800&q=80",
                 source_platform="Amazon",
-                source_url="https://amazon.in/sennheiser-hd660s2",
-                seller_id="seller-appario",
-                rating=4.9,
-                review_count=840,
-                thirty_day_avg_price=41000.0,
-                all_time_low=36990.0,
-                market_min=37500.0,
-                market_max=45000.0
-            )
-        ]
-        db.add_all(products)
-        db.commit()
-
-        # ----------------------------------------------------
-        # 3. REVIEWS (100+ Reviews across products)
-        # ----------------------------------------------------
-        reviews_data = [
-            # Sony Reviews
-            models.Review(
-                id="rev-sony-1",
-                product_id="sony-wh1000xm5",
-                seller_id="seller-appario",
-                author="Arjun M., Bangalore",
-                review_text="Battery lasted around 28 hours with ANC on during long study sessions. Incredibly comfortable, ANC cuts AC hum completely. Microphone is average in windy traffic.",
-                rating=4.0,
-                verified_purchase=True,
-                review_date="3 days ago",
-                sentiment_score=85.0,
-                credibility_score=92.0,
-                suspicion_probability=8.0,
-                credibility_label="High Credibility",
-                detected_signals=["Specific usage parameters", "Balanced pros/cons", "Verified invoice timestamp"]
+                source_url="https://amazon.in/iphone-15-pro-max",
+                seller_id="seller-apple-direct",
+                rating=4.8,
+                review_count=8900,
+                thirty_day_avg_price=152000.0,
+                all_time_low=144900.0,
+                market_min=145000.0,
+                market_max=159900.0
             ),
-            models.Review(
-                id="rev-sony-2",
-                product_id="sony-wh1000xm5",
-                seller_id="seller-appario",
-                author="Priya K., Mumbai",
-                review_text="Soundstage is crisp, multipoint Bluetooth connects to my MacBook and iPhone seamlessly. Worth the upgrade from XM4 for office calls.",
-                rating=5.0,
-                verified_purchase=True,
-                review_date="1 week ago",
-                sentiment_score=94.0,
-                credibility_score=86.0,
-                suspicion_probability=14.0,
-                credibility_label="High Credibility",
-                detected_signals=["Device-specific interoperability mentioned", "Consistent reviewer profile"]
-            ),
-            models.Review(
-                id="rev-sony-3",
-                product_id="sony-wh1000xm5",
-                seller_id="seller-appario",
-                author="User_9823741",
-                review_text="BEST HEADPHONES ON EARTH 1000% RECOMMENDED BUY NOW SUPER FAST SHIPPING!!!!!",
-                rating=5.0,
-                verified_purchase=False,
-                review_date="2 weeks ago",
-                sentiment_score=98.0,
-                credibility_score=16.0,
-                suspicion_probability=84.0,
-                credibility_label="High Bot Probability",
-                detected_signals=["Hyperbolic capitalization", "No technical specifics", "Cluster review burst timestamp"]
-            ),
-
-            # Instagram Sneaker Reviews
-            models.Review(
-                id="rev-scam-1",
-                product_id="instagram-viral-sneakers",
-                seller_id="seller-hypeluxe",
-                author="Bot_Fashion_99",
-                review_text="Best quality ever received within 2 days so fast and original!!! 🔥🔥🔥",
-                rating=5.0,
-                verified_purchase=False,
-                review_date="Yesterday",
-                sentiment_score=95.0,
-                credibility_score=8.0,
-                suspicion_probability=92.0,
-                credibility_label="High Bot Probability",
-                detected_signals=["Account created same day", "Spam comment loop", "Generic template"]
-            ),
-            models.Review(
-                id="rev-scam-2",
-                product_id="instagram-viral-sneakers",
-                seller_id="seller-hypeluxe",
-                author="Rohan_RealBuyer",
-                review_text="Paid ₹3500 advance on GPay. No tracking number sent, seller blocked my handle when asked for dispatch status.",
-                rating=1.0,
-                verified_purchase=False,
-                review_date="4 days ago",
-                sentiment_score=5.0,
-                credibility_score=96.0,
-                suspicion_probability=4.0,
-                credibility_label="High Credibility",
-                detected_signals=["Specific transaction grievance", "High external fraud matching pattern"]
-            ),
-
-            # Noise Smartwatch Reviews
-            models.Review(
-                id="rev-watch-1",
-                product_id="noise-smartwatch",
+            # 15. The Ordinary Niacinamide 10% (Beauty products)
+            models.Product(
+                id="ordinary-niacinamide",
+                name="The Ordinary Niacinamide 10% + Zinc 1% High-Strength Serum (30ml)",
+                description="High-strength vitamin and mineral blemish formula with pure 10% niacinamide and 1% zinc PCA.",
+                category="Beauty products",
+                brand="The Ordinary",
+                price=650.0,
+                currency="₹",
+                original_price=750.0,
+                image_url="https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80",
+                source_platform="Flipkart",
+                source_url="https://flipkart.com/the-ordinary-niacinamide",
                 seller_id="seller-retailnet",
-                author="Siddharth T.",
-                review_text="Screen is bright outdoors, step counter has ~5% margin compared to Apple Watch. Bluetooth calling is clear indoors.",
-                rating=4.0,
-                verified_purchase=True,
-                review_date="5 days ago",
-                sentiment_score=82.0,
-                credibility_score=90.0,
-                suspicion_probability=10.0,
-                credibility_label="High Credibility",
-                detected_signals=["Comparative benchmarks provided", "Verified purchase badge"]
+                rating=4.7,
+                review_count=16500,
+                thirty_day_avg_price=690.0,
+                all_time_low=580.0,
+                market_min=600.0,
+                market_max=750.0
+            ),
+            # 16. Levi's 511 Slim Fit Jeans (Clothing)
+            models.Product(
+                id="levis-511-jeans",
+                name="Levi's Men's 511 Slim Fit Stretch Denim Jeans",
+                description="A modern slim with room to move. Added stretch for all-day comfort and authentic denim wash.",
+                category="Clothing",
+                brand="Levi's",
+                price=2799.0,
+                currency="₹",
+                original_price=4199.0,
+                image_url="https://images.unsplash.com/photo-1542272604-780c96856592?auto=format&fit=crop&w=800&q=80",
+                source_platform="Amazon",
+                source_url="https://amazon.in/levis-511",
+                seller_id="seller-appario",
+                rating=4.6,
+                review_count=5400,
+                thirty_day_avg_price=2999.0,
+                all_time_low=2399.0,
+                market_min=2500.0,
+                market_max=4199.0
+            ),
+            # 17. Adidas Ultraboost Light (Shoes)
+            models.Product(
+                id="adidas-ultraboost-light",
+                name="Adidas Ultraboost Light Running Shoes",
+                description="30% lighter BOOST material with Linear Energy Push system and Continental rubber grip.",
+                category="Shoes",
+                brand="Adidas",
+                price=16999.0,
+                currency="₹",
+                original_price=18999.0,
+                image_url="https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=800&q=80",
+                source_platform="Flipkart",
+                source_url="https://flipkart.com/adidas-ultraboost",
+                seller_id="seller-retailnet",
+                rating=4.7,
+                review_count=2800,
+                thirty_day_avg_price=17500.0,
+                all_time_low=14999.0,
+                market_min=15500.0,
+                market_max=18999.0
+            ),
+            # 18. ASUS ROG Zephyrus G16 (Laptops)
+            models.Product(
+                id="asus-rog-g16",
+                name="ASUS ROG Zephyrus G16 (2024) 16\" OLED 240Hz Gaming Laptop (RTX 4080)",
+                description="Intel Core Ultra 9 Processor, 2.5K OLED ROG Nebula Display, Slash Lighting, CNC Aluminum.",
+                category="Laptops",
+                brand="ASUS",
+                price=219990.0,
+                currency="₹",
+                original_price=249990.0,
+                image_url="https://images.unsplash.com/photo-1603302576837-37561b2e2302?auto=format&fit=crop&w=800&q=80",
+                source_platform="Amazon",
+                source_url="https://amazon.in/asus-rog-g16",
+                seller_id="seller-appario",
+                rating=4.7,
+                review_count=760,
+                thirty_day_avg_price=226000.0,
+                all_time_low=209990.0,
+                market_min=210000.0,
+                market_max=249990.0
+            ),
+            # 19. H&M Oversized Heavyweight Hoodie (Clothing)
+            models.Product(
+                id="hm-oversized-hoodie",
+                name="H&M Premium Oversized Heavyweight Cotton Hoodie",
+                description="Oversized hoodie in heavy 460gsm cotton sweat fabric with brushed interior and ribbed trim.",
+                category="Clothing",
+                brand="H&M",
+                price=2299.0,
+                currency="₹",
+                original_price=2999.0,
+                image_url="https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=800&q=80",
+                source_platform="Myntra",
+                source_url="https://myntra.com/hm-hoodie",
+                seller_id="seller-retailnet",
+                rating=4.4,
+                review_count=4300,
+                thirty_day_avg_price=2499.0,
+                all_time_low=1899.0,
+                market_min=1999.0,
+                market_max=2999.0
+            ),
+            # 20. Dyson Airwrap Multi-Styler (Beauty products)
+            models.Product(
+                id="dyson-airwrap",
+                name="Dyson Airwrap Multi-Styler Complete Long (Nickel/Copper)",
+                description="Coanda air styling powered by Dyson V9 digital motor; styles with air, not extreme heat.",
+                category="Beauty products",
+                brand="Dyson",
+                price=45900.0,
+                currency="₹",
+                original_price=49900.0,
+                image_url="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80",
+                source_platform="Amazon",
+                source_url="https://amazon.in/dyson-airwrap",
+                seller_id="seller-appario",
+                rating=4.8,
+                review_count=3100,
+                thirty_day_avg_price=47500.0,
+                all_time_low=42900.0,
+                market_min=43000.0,
+                market_max=49900.0
             )
         ]
 
-        # Generate additional realistic reviews to reach 100+ reviews
-        review_authors = ["Vikram S.", "Sneha R.", "Anand K.", "Pooja D.", "Ramesh B.", "Kavita M.", "Naveen G.", "Divya P.", "Rahul V.", "Meera T."]
-        sentiment_phrases = [
-            ("Solid battery life and great build quality for daily use.", 4.5, True, 12.0, "High Credibility"),
-            ("Noise cancellation is very effective during metro commutes.", 4.8, True, 10.0, "High Credibility"),
-            ("Microphone struggled slightly in windy outdoor conditions, but overall very good.", 4.0, True, 14.0, "High Credibility"),
-            ("BEST DEAL BUY NOW FAST!!!", 5.0, False, 85.0, "High Bot Probability"),
-            ("Delivery was quick, packing was safe. Genuine product with warranty card.", 4.6, True, 15.0, "High Credibility"),
-            ("Sound clarity is remarkable, bass is punchy without distorting vocals.", 4.9, True, 8.0, "High Credibility"),
-            ("Great product for office work and conference calls.", 4.4, True, 12.0, "High Credibility"),
-            ("AMAZING QUALITY PERFECT 10/10 MUST BUY!!!", 5.0, False, 82.0, "High Bot Probability")
-        ]
-
-        counter = 10
-        for p in products:
-            for idx in range(8):
-                auth = review_authors[(counter + idx) % len(review_authors)]
-                text, r_rating, is_ver, susp, cred_label = sentiment_phrases[idx % len(sentiment_phrases)]
-                reviews_data.append(
-                    models.Review(
-                        id=f"rev-gen-{counter}",
-                        product_id=p.id,
-                        seller_id=p.seller_id,
-                        author=f"{auth} (Verified)",
-                        review_text=text,
-                        rating=r_rating,
-                        verified_purchase=is_ver,
-                        review_date=f"{(idx + 1) * 2} days ago",
-                        sentiment_score=80.0 if r_rating >= 4.0 else 30.0,
-                        credibility_score=100.0 - susp,
-                        suspicion_probability=susp,
-                        credibility_label=cred_label,
-                        detected_signals=["Natural phrasing benchmark", "Verified timestamp"] if is_ver else ["Template phrasing match"]
-                    )
-                )
-                counter += 1
-
-        db.add_all(reviews_data)
+        for p in products_list:
+            if not db.query(models.Product).filter(models.Product.id == p.id).first():
+                db.add(p)
         db.commit()
 
-        # ----------------------------------------------------
-        # 4. PRICE HISTORY (Timelines for all products)
-        # ----------------------------------------------------
-        price_history_records = [
-            # Sony WH-1000XM5 History
-            models.PriceHistory(id="ph-sony-1", product_id="sony-wh1000xm5", price=29990.0, avg_price=29500.0, source="Amazon", recorded_date="1 Aug"),
-            models.PriceHistory(id="ph-sony-2", product_id="sony-wh1000xm5", price=29490.0, avg_price=29200.0, source="Amazon", recorded_date="10 Aug"),
-            models.PriceHistory(id="ph-sony-3", product_id="sony-wh1000xm5", price=28990.0, avg_price=28900.0, source="Amazon", recorded_date="20 Aug"),
-            models.PriceHistory(id="ph-sony-4", product_id="sony-wh1000xm5", price=27990.0, avg_price=28600.0, source="Amazon", recorded_date="1 Sep"),
-            models.PriceHistory(id="ph-sony-5", product_id="sony-wh1000xm5", price=26990.0, avg_price=28499.0, source="Amazon", recorded_date="10 Sep"),
+        # Seed sample saved product and analysis for demo user
+        saved_check = db.query(models.SavedProduct).filter(models.SavedProduct.user_id == "usr_demo_101").first()
+        if not saved_check:
+            db.add(models.SavedProduct(
+                id="saved_demo_1",
+                user_id="usr_demo_101",
+                product_id="sony-wh1000xm5",
+                created_at=datetime.datetime.utcnow()
+            ))
+            db.add(models.SavedProduct(
+                id="saved_demo_2",
+                user_id="usr_demo_101",
+                product_id="apple-airpods-pro-2",
+                created_at=datetime.datetime.utcnow()
+            ))
+            db.commit()
 
-            # Noise Smartwatch History
-            models.PriceHistory(id="ph-watch-1", product_id="noise-smartwatch", price=1499.0, avg_price=1650.0, source="Flipkart", recorded_date="1 Aug"),
-            models.PriceHistory(id="ph-watch-2", product_id="noise-smartwatch", price=1699.0, avg_price=1700.0, source="Flipkart", recorded_date="15 Aug"),
-            models.PriceHistory(id="ph-watch-3", product_id="noise-smartwatch", price=1799.0, avg_price=1750.0, source="Flipkart", recorded_date="25 Aug"),
-            models.PriceHistory(id="ph-watch-4", product_id="noise-smartwatch", price=1999.0, avg_price=1799.0, source="Flipkart", recorded_date="5 Sep"),
-
-            # Sneaker History
-            models.PriceHistory(id="ph-snk-1", product_id="instagram-viral-sneakers", price=4999.0, avg_price=4200.0, source="Instagram", recorded_date="1 Aug"),
-            models.PriceHistory(id="ph-snk-2", product_id="instagram-viral-sneakers", price=3999.0, avg_price=3800.0, source="Instagram", recorded_date="15 Aug"),
-            models.PriceHistory(id="ph-snk-3", product_id="instagram-viral-sneakers", price=3499.0, avg_price=3499.0, source="Instagram", recorded_date="1 Sep")
-        ]
-        db.add_all(price_history_records)
-        db.commit()
-
-        print(f"Successfully seeded database: {len(products)} products, {len(sellers)} sellers, {len(reviews_data)} reviews, {len(price_history_records)} price history points.")
+        print(f"Database seeded successfully with {len(products_list)} products and {len(sellers)} sellers.")
 
     finally:
         db.close()

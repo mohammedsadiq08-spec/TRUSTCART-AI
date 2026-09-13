@@ -1,5 +1,7 @@
 from fastapi import APIRouter
 from app.api.routes import (
+    auth,
+    users,
     products,
     analysis,
     reviews,
@@ -11,6 +13,8 @@ from app.api.routes import (
 
 api_router = APIRouter()
 
+api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+api_router.include_router(users.router, prefix="/users", tags=["Users & Dashboard"])
 api_router.include_router(products.router, prefix="/products", tags=["Products"])
 api_router.include_router(analysis.router, prefix="/analysis", tags=["5-Layer Trust Analysis"])
 api_router.include_router(reviews.router, prefix="/reviews", tags=["Review Intelligence"])

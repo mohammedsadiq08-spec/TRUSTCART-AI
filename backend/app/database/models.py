@@ -8,7 +8,8 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Text,
-    JSON
+    JSON,
+    UniqueConstraint
 )
 from sqlalchemy.orm import relationship
 from app.database.database import Base
@@ -18,14 +19,17 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(String(64), primary_key=True, index=True)
-    name = Column(String(128), nullable=False)
+    full_name = Column(String(128), nullable=False)
     email = Column(String(255), unique=True, index=True, nullable=False)
-    password_hash = Column(String(255), nullable=True)
+    password_hash = Column(String(255), nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
     # Relationships
-    preferences = relationship("UserPreference", back_populates="user", cascade="all, delete-orphan")
+    preferences = relationship("UserPreference", back_populates="user", cascade="all, delete-orphan", uselist=False)
     social_inputs = relationship("SocialProductInput", back_populates="user")
+    analyses = relationship("ProductAnalysis", back_populates="user")
+    saved_products = relationship("SavedProduct", back_populates="user", cascade="all, delete-orphan")
 
 
 class Seller(Base):
@@ -44,6 +48,7 @@ class Seller(Base):
     return_policy = Column(String(255), default="7-Day Replacement Policy")
     warnings = Column(JSON, default=list)  # List of string warnings
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
     # Relationships
     products = relationship("Product", back_populates="seller")
@@ -79,6 +84,7 @@ class Product(Base):
     reviews = relationship("Review", back_populates="product", cascade="all, delete-orphan")
     price_history = relationship("PriceHistory", back_populates="product", cascade="all, delete-orphan")
     analyses = relationship("ProductAnalysis", back_populates="product", cascade="all, delete-orphan")
+    saved_by = relationship("SavedProduct", back_populates="product", cascade="all, delete-orphan")
 
 
 class Review(Base):
@@ -87,18 +93,18 @@ class Review(Base):
     id = Column(String(64), primary_key=True, index=True)
     product_id = Column(String(64), ForeignKey("products.id"), nullable=False, index=True)
     seller_id = Column(String(64), ForeignKey("sellers.id"), nullable=True)
+    reviewer_id = Column(String(64), nullable=True)
     author = Column(String(128), nullable=False)
     avatar_url = Column(String(512), nullable=True)
     review_text = Column(Text, nullable=False)
     rating = Column(Float, nullable=False)
     verified_purchase = Column(Boolean, default=True)
-    reviewer_id = Column(String(64), nullable=True)
     review_date = Column(String(64), nullable=True)
-    sentiment_score = Column(Float, default=0.0)  # -1.0 to +1.0 or 0 to 100
-    credibility_score = Column(Float, default=80.0)  # 0 to 100
-    suspicion_probability = Column(Float, default=10.0)  # 0 to 100
+    sentiment_score = Column(Float, default=0.0)
+    credibility_score = Column(Float, default=80.0)
+    suspicion_probability = Column(Float, default=10.0)
     credibility_label = Column(String(64), default="High Credibility")
-    detected_signals = Column(JSON, default=list)  # List of string signals
+    detected_signals = Column(JSON, default=list)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     # Relationships
@@ -114,7 +120,7 @@ class PriceHistory(Base):
     price = Column(Float, nullable=False)
     avg_price = Column(Float, nullable=False)
     source = Column(String(64), default="Amazon")
-    recorded_date = Column(String(32), nullable=False)  # e.g. "1 Aug", "10 Sep"
+    recorded_date = Column(String(32), nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     # Relationships
@@ -125,12 +131,13 @@ class ProductAnalysis(Base):
     __tablename__ = "product_analyses"
 
     id = Column(String(64), primary_key=True, index=True)
+    user_id = Column(String(64), ForeignKey("users.id"), nullable=True, index=True)
     product_id = Column(String(64), ForeignKey("products.id"), nullable=False, index=True)
     review_trust_score = Column(Float, default=80.0)
     seller_trust_score = Column(Float, default=80.0)
-    price_intelligence_score = Column(Float, default=80.0)
+    price_value_score = Column(Float, default=80.0)
     product_quality_score = Column(Float, default=80.0)
-    purchase_risk = Column(String(32), default="LOW")  # LOW, MEDIUM, HIGH
+    risk_score = Column(Float, default=20.0)
     overall_trust_score = Column(Float, default=80.0)
     recommendation = Column(String(16), default="BUY")  # BUY, WAIT, AVOID
     confidence = Column(Float, default=85.0)  # percentage
@@ -142,6 +149,7 @@ class ProductAnalysis(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     # Relationships
+    user = relationship("User", back_populates="analyses")
     product = relationship("Product", back_populates="analyses")
 
 
@@ -149,7 +157,7 @@ class UserPreference(Base):
     __tablename__ = "user_preferences"
 
     id = Column(String(64), primary_key=True, index=True)
-    user_id = Column(String(64), ForeignKey("users.id"), nullable=True, index=True)
+    user_id = Column(String(64), ForeignKey("users.id"), unique=True, nullable=False, index=True)
     category = Column(String(128), default="Audio & Electronics")
     budget = Column(Float, default=30000.0)
     purpose = Column(String(64), default="Study")  # Study, Office, Gaming, Fitness, Audiophile
@@ -159,9 +167,27 @@ class UserPreference(Base):
     mic_weight = Column(Float, default=10.0)
     preferences = Column(JSON, default=dict)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
     # Relationships
     user = relationship("User", back_populates="preferences")
+
+
+class SavedProduct(Base):
+    __tablename__ = "saved_products"
+
+    id = Column(String(64), primary_key=True, index=True)
+    user_id = Column(String(64), ForeignKey("users.id"), nullable=False, index=True)
+    product_id = Column(String(64), ForeignKey("products.id"), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint('user_id', 'product_id', name='uq_user_saved_product'),
+    )
+
+    # Relationships
+    user = relationship("User", back_populates="saved_products")
+    product = relationship("Product", back_populates="saved_by")
 
 
 class SocialProductInput(Base):
@@ -169,7 +195,7 @@ class SocialProductInput(Base):
 
     id = Column(String(64), primary_key=True, index=True)
     user_id = Column(String(64), ForeignKey("users.id"), nullable=True)
-    source_platform = Column(String(32), default="Instagram")  # Instagram, WhatsApp, Telegram
+    source_platform = Column(String(32), default="Instagram")
     source_url = Column(String(1024), nullable=True)
     image_url = Column(String(1024), nullable=True)
     raw_post_title = Column(String(512), nullable=True)

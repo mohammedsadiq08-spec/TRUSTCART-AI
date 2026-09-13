@@ -1,14 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Menu, X, Sparkles, ArrowRight, ShieldAlert } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { ShieldCheck, Menu, X, Sparkles, ArrowRight, User as UserIcon, LayoutDashboard, LogOut } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 interface NavbarProps {
-  onOpenScanner: () => void;
-  onOpenSignIn: () => void;
+  onOpenScanner?: () => void;
+  onOpenSignIn?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ onOpenScanner, onOpenSignIn }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+
+  const { isAuthenticated, user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isHomePage = location.pathname === '/';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,13 +27,29 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenScanner, onOpenSignIn }) =
   }, []);
 
   const navLinks = [
-    { label: 'Discover', href: '#console' },
-    { label: 'How It Works', href: '#how-it-works' },
-    { label: 'Trust Engine', href: '#trust-engine' },
-    { label: 'Review AI', href: '#fake-reviews' },
-    { label: 'Social Commerce', href: '#social-commerce' },
-    { label: 'Compare', href: '#compare' },
+    { label: 'Discover', href: '/#console' },
+    { label: 'How It Works', href: '/#how-it-works' },
+    { label: 'Trust Engine', href: '/#trust-engine' },
+    { label: 'Review AI', href: '/#fake-reviews' },
+    { label: 'Social Commerce', href: '/#social-commerce' },
+    { label: 'Compare', href: '/#compare' },
   ];
+
+  const handleActionScanner = () => {
+    if (isHomePage && onOpenScanner) {
+      onOpenScanner();
+    } else {
+      navigate('/#console');
+    }
+  };
+
+  const handleSignInClick = () => {
+    if (onOpenSignIn) {
+      onOpenSignIn();
+    } else {
+      navigate('/login');
+    }
+  };
 
   return (
     <header
@@ -38,7 +62,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenScanner, onOpenSignIn }) =
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
           {/* Logo Brand */}
-          <a href="#" className="flex items-center gap-3 group">
+          <Link to="/" className="flex items-center gap-3 group">
             <div className="relative flex items-center justify-center w-10 h-10 rounded-xl overflow-hidden bg-dark-900 border border-dark-700/80 group-hover:border-ai-cyan/50 transition-all duration-300 shadow-md">
               <img 
                 src="/trustcart-logo.jpg" 
@@ -60,7 +84,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenScanner, onOpenSignIn }) =
                 Trust & Decision Intel
               </span>
             </div>
-          </a>
+          </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1 lg:gap-2 px-3 py-1.5 rounded-full bg-dark-900/60 border border-dark-700/50 backdrop-blur-md">
@@ -77,14 +101,57 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenScanner, onOpenSignIn }) =
 
           {/* Right Action CTAs */}
           <div className="hidden md:flex items-center gap-3">
+            {isAuthenticated && user ? (
+              <div className="relative">
+                <button
+                  onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                  className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-dark-900 border border-dark-750 hover:border-dark-650 transition-all text-xs text-white"
+                >
+                  <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-ai-cyan to-ai-blue text-dark-950 font-bold text-[10px] flex items-center justify-center">
+                    {user.full_name ? user.full_name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="font-medium max-w-[120px] truncate">{user.full_name || user.email.split('@')[0]}</span>
+                </button>
+
+                {userDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 rounded-2xl bg-dark-900 border border-dark-700 p-2 shadow-2xl backdrop-blur-xl z-50 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-3 py-2 border-b border-dark-800">
+                      <div className="text-xs font-bold text-white truncate">{user.full_name || 'User'}</div>
+                      <div className="text-[10px] font-mono text-brand-dim truncate">{user.email}</div>
+                    </div>
+                    <Link
+                      to="/dashboard"
+                      onClick={() => setUserDropdownOpen(false)}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl text-brand-muted hover:text-white hover:bg-dark-800 transition-colors mt-1"
+                    >
+                      <LayoutDashboard className="w-3.5 h-3.5 text-ai-cyan" />
+                      <span>Trust Dashboard</span>
+                    </Link>
+                    <button
+                      onClick={() => {
+                        setUserDropdownOpen(false);
+                        logout();
+                        navigate('/');
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl text-risk hover:bg-risk/10 transition-colors"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={handleSignInClick}
+                className="px-4 py-2 text-xs lg:text-sm font-medium text-brand-muted hover:text-white transition-colors"
+              >
+                Sign In
+              </button>
+            )}
+
             <button
-              onClick={onOpenSignIn}
-              className="px-4 py-2 text-xs lg:text-sm font-medium text-brand-muted hover:text-white transition-colors"
-            >
-              Sign In
-            </button>
-            <button
-              onClick={onOpenScanner}
+              onClick={handleActionScanner}
               className="relative group overflow-hidden px-4 lg:px-5 py-2 rounded-xl text-xs lg:text-sm font-semibold text-dark-950 bg-gradient-to-r from-ai-cyan via-brand-text to-ai-blue hover:shadow-glow-cyan transition-all duration-300 flex items-center gap-2"
             >
               <Sparkles className="w-3.5 h-3.5 text-dark-950" />
@@ -96,7 +163,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenScanner, onOpenSignIn }) =
           {/* Mobile Menu Button */}
           <div className="flex md:hidden items-center gap-2">
             <button
-              onClick={onOpenScanner}
+              onClick={handleActionScanner}
               className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-ai-cyan text-dark-950"
             >
               Analyze
@@ -138,22 +205,46 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenScanner, onOpenSignIn }) =
             <button
               onClick={() => {
                 setMobileMenuOpen(false);
-                onOpenScanner();
+                handleActionScanner();
               }}
               className="w-full py-2.5 rounded-xl text-sm font-semibold text-dark-950 bg-gradient-to-r from-ai-cyan to-ai-blue flex items-center justify-center gap-2"
             >
               <Sparkles className="w-4 h-4" />
               Analyze a Product Now
             </button>
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                onOpenSignIn();
-              }}
-              className="w-full py-2 rounded-lg text-xs font-medium text-brand-muted hover:text-white text-center"
-            >
-              Sign In to Account
-            </button>
+            
+            {isAuthenticated && user ? (
+              <>
+                <Link
+                  to="/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full py-2 rounded-lg text-xs font-semibold text-ai-cyan bg-dark-900 border border-dark-700 text-center flex items-center justify-center gap-2"
+                >
+                  <LayoutDashboard className="w-3.5 h-3.5" />
+                  <span>Open Trust Dashboard</span>
+                </Link>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    logout();
+                    navigate('/');
+                  }}
+                  className="w-full py-2 rounded-lg text-xs font-medium text-risk hover:bg-risk/10 text-center"
+                >
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  handleSignInClick();
+                }}
+                className="w-full py-2 rounded-lg text-xs font-medium text-brand-muted hover:text-white text-center"
+              >
+                Sign In to Account
+              </button>
+            )}
           </div>
         </div>
       )}

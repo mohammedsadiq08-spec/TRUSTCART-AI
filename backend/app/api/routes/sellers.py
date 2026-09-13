@@ -1,10 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException
+﻿from typing import List
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.database.database import get_db
 from app.schemas.seller import SellerResponse, SellerAnalysisRequest
 from app.services.seller_service import seller_service
 
 router = APIRouter()
+
+
+@router.get("", response_model=List[SellerResponse])
+def get_sellers(
+    limit: int = Query(50, ge=1, le=100),
+    db: Session = Depends(get_db)
+):
+    """Retrieve seller registry with trust scores."""
+    return seller_service.get_all_sellers(db, limit=limit)
 
 
 @router.get("/{seller_id}", response_model=SellerResponse)
