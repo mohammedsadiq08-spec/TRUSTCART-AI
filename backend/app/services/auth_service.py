@@ -1,4 +1,4 @@
-import uuid
+﻿import uuid
 import datetime
 from typing import Optional, Dict, Any
 from sqlalchemy.orm import Session
@@ -18,7 +18,7 @@ class AuthService:
             )
 
         # 2. Check if email already exists
-        existing_user = db.query(models.User).filter(models.User.email == req.email.lower()).first()
+        existing_user = db.query(models.User).filter(models.User.email == req.email.lower().strip()).first()
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -33,7 +33,7 @@ class AuthService:
             full_name=req.full_name.strip(),
             email=req.email.lower().strip(),
             password_hash=hashed_password,
-            created_at=datetime.datetime.utcnow()
+            created_at=datetime.datetime.now(datetime.timezone.utc)
         )
         db.add(new_user)
         db.commit()

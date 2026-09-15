@@ -1,4 +1,4 @@
-import uuid
+﻿import uuid
 import datetime
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
@@ -26,10 +26,11 @@ class UserService:
     def update_user_profile(self, db: Session, user: models.User, req: UserUpdateRequest) -> Dict[str, Any]:
         if req.full_name:
             user.full_name = req.full_name.strip()
+
         if req.password:
             user.password_hash = get_password_hash(req.password)
 
-        user.updated_at = datetime.datetime.utcnow()
+        user.updated_at = datetime.datetime.now(datetime.timezone.utc)
         db.commit()
         db.refresh(user)
 
@@ -52,7 +53,7 @@ class UserService:
             id=f"saved_{uuid.uuid4().hex[:12]}",
             user_id=user.id,
             product_id=product_id,
-            created_at=datetime.datetime.utcnow()
+            created_at=datetime.datetime.now(datetime.timezone.utc)
         )
         db.add(saved_item)
         db.commit()
@@ -162,7 +163,7 @@ class UserService:
                 battery_weight=prefs.batteryWeight,
                 sound_weight=prefs.soundWeight,
                 mic_weight=prefs.micWeight,
-                created_at=datetime.datetime.utcnow()
+                created_at=datetime.datetime.now(datetime.timezone.utc)
             )
             db.add(pref)
         else:
@@ -172,7 +173,7 @@ class UserService:
             pref.battery_weight = prefs.batteryWeight
             pref.sound_weight = prefs.soundWeight
             pref.mic_weight = prefs.micWeight
-            pref.updated_at = datetime.datetime.utcnow()
+            pref.updated_at = datetime.datetime.now(datetime.timezone.utc)
 
         db.commit()
         return self.get_user_preferences(db, user)

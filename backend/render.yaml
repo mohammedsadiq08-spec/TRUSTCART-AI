@@ -2,7 +2,7 @@
   - type: web
     name: trustcart-backend
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && alembic upgrade head
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
@@ -14,7 +14,7 @@
       - key: ENVIRONMENT
         value: production
       - key: BACKEND_CORS_ORIGINS
-        value: '["*"]'
+        value: '["https://trustcart-ai.onrender.com", "https://trustcart.ai", "http://localhost:3000"]'
 
 databases:
   - name: trustcart-db

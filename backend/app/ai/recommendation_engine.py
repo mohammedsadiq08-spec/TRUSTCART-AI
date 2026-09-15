@@ -1,11 +1,11 @@
-from typing import Dict, Any, List
+﻿from typing import Dict, Any, List, Optional
 from app.core.config import settings
 
 
 class RecommendationEngine:
     """
     Synthesizes overall trust, price intelligence, seller reputation,
-    and purchase risk into an explainable BUY, WAIT, or AVOID verdict.
+    and purchase risk into an explainable BUY, WAIT, AVOID, or INSUFFICIENT INFORMATION verdict.
     """
 
     def decide(
@@ -15,8 +15,17 @@ class RecommendationEngine:
         price_intelligence_score: float,
         seller_trust_score: float,
         review_trust_score: float,
-        product_quality_score: float
+        product_quality_score: float,
+        has_sufficient_data: bool = True
     ) -> Dict[str, Any]:
+        # 0. INSUFFICIENT INFORMATION State
+        if not has_sufficient_data or (review_trust_score <= 0 and seller_trust_score <= 0 and price_intelligence_score <= 0):
+            return {
+                "recommendation": "INSUFFICIENT INFORMATION",
+                "confidence": 0.0,
+                "decision_summary": "Insufficient data points available across reviews, seller track record, and price history to establish a reliable decision."
+            }
+
         # 1. AVOID Triggers
         if purchase_risk == "HIGH" or overall_trust_score < settings.RISK_THRESHOLD_MEDIUM_MAX:
             recommendation = "AVOID"

@@ -5,32 +5,32 @@ from app.database.database import SessionLocal, engine, Base
 from app.core.security import get_password_hash
 
 
-def seed_database():
-    Base.metadata.create_all(bind=engine)
+def seed_database(include_demo_user: bool = True, force: bool = False):
     db: Session = SessionLocal()
 
     try:
-        # Check if already seeded with at least 15 products
-        if db.query(models.Product).count() >= 15:
+        # Check if already seeded with products
+        if not force and db.query(models.Product).count() >= 15:
             print("Database already contains full seed dataset. Skipping seed.")
             return
 
-        print("Seeding TRUSTCART AI database with 20 products, 10 sellers, 100+ reviews, and test user...")
+        print("Seeding TRUSTCART AI database with 20 products, 10 sellers, 100+ reviews...")
 
         # ----------------------------------------------------
-        # 0. DEMO USER
+        # 0. DEMO USER (Development fixture only)
         # ----------------------------------------------------
-        demo_user = db.query(models.User).filter(models.User.email == "alex@trustcart.ai").first()
-        if not demo_user:
-            demo_user = models.User(
-                id="usr_demo_101",
-                full_name="Alex Mercer",
-                email="alex@trustcart.ai",
-                password_hash=get_password_hash("password123"),
-                created_at=datetime.datetime.utcnow()
-            )
-            db.add(demo_user)
-            db.commit()
+        if include_demo_user:
+            demo_user = db.query(models.User).filter(models.User.email == "alex@trustcart.ai").first()
+            if not demo_user:
+                demo_user = models.User(
+                    id="usr_demo_101",
+                    full_name="Alex Mercer",
+                    email="alex@trustcart.ai",
+                    password_hash=get_password_hash("password123"),
+                    created_at=datetime.datetime.now(datetime.timezone.utc)
+                )
+                db.add(demo_user)
+                db.commit()
 
         # ----------------------------------------------------
         # 1. SELLERS (10 Sellers across verified & risky platforms)
@@ -624,22 +624,23 @@ def seed_database():
                 db.add(p)
         db.commit()
 
-        # Seed sample saved product and analysis for demo user
-        saved_check = db.query(models.SavedProduct).filter(models.SavedProduct.user_id == "usr_demo_101").first()
-        if not saved_check:
-            db.add(models.SavedProduct(
-                id="saved_demo_1",
-                user_id="usr_demo_101",
-                product_id="sony-wh1000xm5",
-                created_at=datetime.datetime.utcnow()
-            ))
-            db.add(models.SavedProduct(
-                id="saved_demo_2",
-                user_id="usr_demo_101",
-                product_id="apple-airpods-pro-2",
-                created_at=datetime.datetime.utcnow()
-            ))
-            db.commit()
+        # Seed sample saved product and analysis for demo user if included
+        if include_demo_user:
+            saved_check = db.query(models.SavedProduct).filter(models.SavedProduct.user_id == "usr_demo_101").first()
+            if not saved_check:
+                db.add(models.SavedProduct(
+                    id="saved_demo_1",
+                    user_id="usr_demo_101",
+                    product_id="sony-wh1000xm5",
+                    created_at=datetime.datetime.now(datetime.timezone.utc)
+                ))
+                db.add(models.SavedProduct(
+                    id="saved_demo_2",
+                    user_id="usr_demo_101",
+                    product_id="apple-airpods-pro-2",
+                    created_at=datetime.datetime.now(datetime.timezone.utc)
+                ))
+                db.commit()
 
         print(f"Database seeded successfully with {len(products_list)} products and {len(sellers)} sellers.")
 
@@ -648,4 +649,9 @@ def seed_database():
 
 
 if __name__ == "__main__":
-    seed_database()
+    import argparse
+    parser = argparse.ArgumentParser(description="Seed TRUSTCART AI development database.")
+    parser.add_argument("--force", action="store_true", help="Force reseeding even if products exist.")
+    parser.add_argument("--no-demo-user", action="store_true", help="Do not seed development demo user.")
+    args = parser.parse_args()
+    seed_database(include_demo_user=not args.no_demo_user, force=args.force)

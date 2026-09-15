@@ -1,16 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+﻿from fastapi import APIRouter, Depends, Request, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database.database import get_db
 from app.schemas.auth import UserRegisterRequest, UserLoginRequest, TokenResponse, AuthMeResponse
 from app.services.auth_service import auth_service
 from app.core.security import get_current_user
+from app.core.rate_limit import limiter
+from app.core.config import settings
 from app.database import models
 
 router = APIRouter()
 
 
 @router.post("/register", response_model=TokenResponse)
+@limiter.limit(settings.RATE_LIMIT_AUTH)
 def register(
+    request: Request,
     req: UserRegisterRequest,
     db: Session = Depends(get_db)
 ):
@@ -22,7 +26,9 @@ def register(
 
 
 @router.post("/login", response_model=TokenResponse)
+@limiter.limit(settings.RATE_LIMIT_AUTH)
 def login(
+    request: Request,
     req: UserLoginRequest,
     db: Session = Depends(get_db)
 ):
@@ -37,6 +43,7 @@ def login(
 def logout():
     """
     Logs out the current user session.
+    Note: Client immediately clears local JWT token.
     """
     return {"status": "success", "message": "Successfully logged out."}
 

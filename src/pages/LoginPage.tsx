@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -91,9 +91,6 @@ export const LoginPage: React.FC = () => {
               <label className="text-xs font-mono uppercase text-brand-dim block">
                 Password
               </label>
-              <span className="text-[11px] text-ai-cyan font-mono cursor-pointer hover:underline">
-                Forgot?
-              </span>
             </div>
             <div className="relative">
               <Lock className="w-4 h-4 text-brand-dim absolute left-3.5 top-3.5" />
@@ -132,18 +129,6 @@ export const LoginPage: React.FC = () => {
           <Link to="/register" className="text-ai-cyan font-semibold hover:underline">
             Create an Account
           </Link>
-        </div>
-
-        {/* Demo Quick Login Chip */}
-        <div className="mt-4 p-2.5 rounded-xl bg-dark-950/80 border border-dark-800 text-center text-[11px] text-brand-dim">
-          <span>Quick Demo: </span>
-          <button
-            type="button"
-            onClick={() => { setEmail('alex@trustcart.ai'); setPassword('password123'); }}
-            className="text-white hover:text-ai-cyan underline font-mono"
-          >
-            alex@trustcart.ai / password123
-          </button>
         </div>
 
       </div>

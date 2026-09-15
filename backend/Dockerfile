@@ -10,7 +10,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend app
+# Copy migrations and backend application code
+COPY alembic.ini .
+COPY alembic/ alembic/
 COPY app/ app/
 
 # Expose port

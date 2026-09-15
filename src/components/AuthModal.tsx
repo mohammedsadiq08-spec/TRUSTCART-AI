@@ -41,13 +41,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleDemoFill = () => {
-    setMode('signin');
-    setEmail('alex@trustcart.ai');
-    setPassword('password123');
-    setErrorMsg('');
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark-950/80 backdrop-blur-xl animate-in fade-in duration-200">
       <div className="relative w-full max-w-md rounded-3xl bg-dark-900 border border-dark-700/80 p-6 sm:p-8 shadow-2xl overflow-hidden">
@@ -187,18 +180,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             )}
           </button>
         </form>
-
-        {/* Demo login shortcut */}
-        <div className="mt-4 p-2.5 rounded-xl bg-dark-950 border border-dark-800 text-center text-[11px] text-brand-dim">
-          <span>Testing? </span>
-          <button
-            type="button"
-            onClick={handleDemoFill}
-            className="text-ai-cyan font-mono hover:underline font-semibold"
-          >
-            Use Demo Credentials
-          </button>
-        </div>
 
       </div>
     </div>
